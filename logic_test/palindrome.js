@@ -8,7 +8,7 @@ function palindrome(word) {
         return false
       }
     } else {
-      return new Error('data type should be a string')
+      throw new Error('data type should be a string')
     }
   } catch (error) {
     console.log(error)
