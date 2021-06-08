@@ -1,6 +1,7 @@
 const express = require('express')
 const app = express()
 const session = require('express-session')
+const db = require('./db/models')
 require('dotenv').config()
 
 app.set('view engine', 'ejs')
@@ -17,19 +18,6 @@ app.get('/', (req, res) => {
 
 const port = process.env.PORT || 3000
 app.listen(port, () => console.log('App listening on port ' + port))
-
-
-/** Testing DB connection */
-const { Sequelize } = require('sequelize')
-const db = require('./config/database.json')
-const sequelize = new Sequelize(db.development)
-
-try {
-  sequelize.authenticate();
-  console.log('Connection has been established successfully.');
-} catch (error) {
-  console.error('Unable to connect to the database:', error);
-}
 
 
 /** Passport */
@@ -63,8 +51,12 @@ passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
   clientSecret: process.env.GOOGLE_CLIENT_SECRET,
   callbackURL: 'http://localhost:3000/auth/google/callback'
-}, (accessToken, refreshToken, profile, done) => {
+}, async (accessToken, refreshToken, profile, done) => {
   userProfile = profile
+  const currentUser = await findUser(userProfile.id)
+  if (!currentUser) {
+    await createUser(userProfile)
+  }
   return done(null, userProfile)
 }))
 
@@ -76,3 +68,20 @@ app.get('/auth/google/callback', passport.authenticate('google', {failureRedirec
   // Successful authentication, redirect success.
   res.redirect('/success')
 })
+
+
+async function findUser(google_id) {
+  return await db.User.findOne({
+    where: {
+      google_id: google_id
+    }
+  })
+}
+
+async function createUser(userProfile) {
+  return await db.User.create({
+    name: userProfile.displayName,
+    google_id: userProfile.id,
+    email: userProfile.emails[0].value
+  })
+}
