@@ -19,6 +19,19 @@ const port = process.env.PORT || 3000
 app.listen(port, () => console.log('App listening on port ' + port))
 
 
+/** Testing DB connection */
+const { Sequelize } = require('sequelize')
+const db = require('./config/database.json')
+const sequelize = new Sequelize(db.development)
+
+try {
+  sequelize.authenticate();
+  console.log('Connection has been established successfully.');
+} catch (error) {
+  console.error('Unable to connect to the database:', error);
+}
+
+
 /** Passport */
 
 let passport = require('passport')
