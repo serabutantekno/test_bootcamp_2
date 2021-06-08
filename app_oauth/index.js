@@ -2,6 +2,7 @@ const express = require('express')
 const app = express()
 const session = require('express-session')
 const db = require('./db/models')
+const Op = require('sequelize').Op
 require('dotenv').config()
 
 app.set('view engine', 'ejs')
@@ -14,6 +15,11 @@ app.use(session({
 
 app.get('/', (req, res) => {
   res.render('pages/auth')
+})
+
+app.get('/data', async (req, res) => {
+  const usersWithGoogle = await getUsersWithGoogle()
+  res.json(usersWithGoogle)
 })
 
 const port = process.env.PORT || 3000
@@ -46,6 +52,7 @@ passport.deserializeUser((obj, cb) => {
 /** Google Auth */
 
 const GoogleStrategy = require('passport-google-oauth').OAuth2Strategy
+const { Sequelize } = require('./db/models')
 
 passport.use(new GoogleStrategy({
   clientID: process.env.GOOGLE_CLIENT_ID,
@@ -83,5 +90,16 @@ async function createUser(userProfile) {
     name: userProfile.displayName,
     google_id: userProfile.id,
     email: userProfile.emails[0].value
+  })
+}
+
+async function getUsersWithGoogle() {
+  return await db.User.findAll({
+    where: {
+      google_id: {
+        // get user data which logged in with google
+        [Op.not]: null
+      }
+    }
   })
 }
